@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  mysql-slave:
+    image: mysql:8.0
+    container_name: mysql-slave
+    hostname: mysql-slave
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: mydata
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./slave/conf.d:/etc/mysql/conf.d
+      - ./slave/data:/var/lib/mysql
+      - ./slave/log:/var/log/mysql
+    networks:
+      - mysql-network
+    command: >
+      --server-id=3
+      --relay-log=/var/log/mysql/mysql-relay-bin
+      --log-bin=/var/log/mysql/mysql-bin.log
+      --binlog-format=ROW
+      --read-only=1
+      --super-read-only=1
+      --gtid-mode=ON
+      --enforce-gtid-consistency=ON
+
+networks:
+  mysql-network:
+    driver: bridge
