@@ -12,7 +12,6 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - ./my.cnf:/etc/mysql/conf.d/my.cnf
       - ./master2-data:/var/lib/mysql
       - ./master2-log:/var/log/mysql
     networks:
@@ -21,9 +20,16 @@ services:
       --server-id=2
       --log-bin=/var/log/mysql/mysql-bin.log
       --binlog-format=ROW
+      --binlog-do-db=mydata
       --relay-log=/var/log/mysql/mysql-relay-bin
+      --relay-log-index=/var/log/mysql/mysql-relay-bin.index
       --auto-increment-increment=2
       --auto-increment-offset=2
+      --log-slave-updates=1
+      --replicate-same-server-id=0
+      --bind-address=0.0.0.0
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
       --gtid-mode=ON
       --enforce-gtid-consistency=ON
 

@@ -12,7 +12,6 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - ./my.cnf:/etc/mysql/conf.d/my.cnf
       - ./slave-data:/var/lib/mysql
       - ./slave-log:/var/log/mysql
     networks:
@@ -20,12 +19,18 @@ services:
     command: >
       --server-id=3
       --relay-log=/var/log/mysql/mysql-relay-bin
+      --relay-log-index=/var/log/mysql/mysql-relay-bin.index
       --log-bin=/var/log/mysql/mysql-bin.log
       --binlog-format=ROW
       --read-only=1
       --super-read-only=1
       --gtid-mode=ON
       --enforce-gtid-consistency=ON
+      --slave-parallel-workers=4
+      --slave-parallel-type=LOGICAL_CLOCK
+      --bind-address=0.0.0.0
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
 
 networks:
   mysql-network:
