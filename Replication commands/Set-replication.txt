@@ -22,39 +22,31 @@ SHOW MASTER STATUS;
 
 docker exec -it mysql-master1 /bin/bash
 mysql -u root -p
-STOP SLAVE;
-CHANGE MASTER TO
-  MASTER_HOST = '100.87.129.54',
-  MASTER_USER = 'replicator',
-  MASTER_PASSWORD = 'repl_password_123',
-  MASTER_AUTO_POSITION = 1;
-START SLAVE;
-SHOW SLAVE STATUS\G
+CHANGE REPLICATION SOURCE TO 
+  SOURCE_HOST = '100.87.129.54',
+  SOURCE_USER = 'replicator',
+  SOURCE_PASSWORD = 'repl_password_123',
+  SOURCE_AUTO_POSITION = 1;
+START REPLICA;
+SHOW REPLICA STATUS\G
 
 ---- set replica master2 from master 1
 
 docker exec -it mysql-master2 /bin/bash
 mysql -u root -p
-STOP SLAVE;
-CHANGE MASTER TO
-  MASTER_HOST = '100.125.125.26',
-  MASTER_USER = 'replicator',
-  MASTER_PASSWORD = 'repl_password_123',
-  MASTER_AUTO_POSITION = 1;
-START SLAVE;
-SHOW SLAVE STATUS\G
+
 
 ---- set slave replica from master 2
 
 docker exec -it mysql-slave /bin/bash
 mysql -u root -p
-CHANGE MASTER TO
-  MASTER_HOST = '100.87.129.54',
-  MASTER_USER = 'replicator',
-  MASTER_PASSWORD = 'repl_password_123',
-  MASTER_AUTO_POSITION = 1;
-START SLAVE;
-SHOW SLAVE STATUS\G
+CHANGE REPLICATION SOURCE TO 
+  SOURCE_HOST = '100.87.129.54',
+  SOURCE_USER = 'replicator',
+  SOURCE_PASSWORD = 'repl_password_123',
+  SOURCE_AUTO_POSITION = 1;
+START REPLICA;
+SHOW REPLICA STATUS\G
 
 
 ---- user creation on all nodes for proxysql use the container name not only master1
