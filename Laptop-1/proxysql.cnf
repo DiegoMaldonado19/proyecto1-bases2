@@ -26,11 +26,14 @@ mysql_variables = {
   sessions_sort=true
 }
 
+# Hostgroup 0 = Writers (ambos masters)
+# Hostgroup 1 = Readers (masters + slave VM)
 mysql_servers = (
   { address="mysql-master1", port=3306, hostgroup=0, max_connections=200, weight=1 },
   { address="mysql-master1", port=3306, hostgroup=1, max_connections=200, weight=1 },
   { address="100.87.129.54", port=3306, hostgroup=0, max_connections=200, weight=1 },
-  { address="100.125.125.26", port=3306, hostgroup=1, max_connections=200, weight=1 }
+  { address="100.87.129.54", port=3306, hostgroup=1, max_connections=200, weight=1 },
+  { address="100.101.102.105", port=3306, hostgroup=1, max_connections=200, weight=2, max_replication_lag=10 }
 )
 
 mysql_users = (

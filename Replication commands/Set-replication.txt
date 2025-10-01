@@ -1,0 +1,75 @@
+---- user creation master1 [laptop1]
+
+docker exec -it mysql-master1 mysql -uroot -p${MYSQL_ROOT_PASSWORD} <<EOF
+CREATE USER 'replicator'@'%' IDENTIFIED BY 'repl_password_123';
+GRANT REPLICATION SLAVE ON *.* TO 'replicator'@'%';
+ALTER USER 'replicator'@'%' IDENTIFIED WITH mysql_native_password BY 'repl_password_123';
+FLUSH PRIVILEGES;
+SHOW MASTER STATUS;
+EOF
+
+
+---- user creation master2 [laptop2]
+
+docker exec -it mysql-master2 mysql -uroot -p${MYSQL_ROOT_PASSWORD} <<EOF
+CREATE USER 'replicator'@'%' IDENTIFIED BY 'repl_password_123';
+GRANT REPLICATION SLAVE ON *.* TO 'replicator'@'%';
+ALTER USER 'replicator'@'%' IDENTIFIED WITH mysql_native_password BY 'repl_password_123';
+FLUSH PRIVILEGES;
+SHOW MASTER STATUS;
+EOF
+
+---- set replica master1 from master2
+
+docker exec -it mysql-master1 mysql -uroot -p${MYSQL_ROOT_PASSWORD} <<EOF
+STOP SLAVE;
+CHANGE MASTER TO
+  MASTER_HOST = '100.87.129.54',
+  MASTER_USER = 'replicator',
+  MASTER_PASSWORD = 'repl_password_123',
+  MASTER_AUTO_POSITION = 1;
+START SLAVE;
+SHOW SLAVE STATUS\G
+EOF
+
+---- set replica master2 from master 1
+
+docker exec -it mysql-master2 mysql -uroot -p${MYSQL_ROOT_PASSWORD} <<EOF
+STOP SLAVE;
+CHANGE MASTER TO
+  MASTER_HOST = '100.125.125.26',
+  MASTER_USER = 'replicator',
+  MASTER_PASSWORD = 'repl_password_123',
+  MASTER_AUTO_POSITION = 1;
+START SLAVE;
+SHOW SLAVE STATUS\G
+EOF
+
+---- set slave replica from master 2
+
+docker exec -it mysql-slave mysql -uroot -p${MYSQL_ROOT_PASSWORD} <<EOF
+CHANGE MASTER TO
+  MASTER_HOST = '100.87.129.54',
+  MASTER_USER = 'replicator',
+  MASTER_PASSWORD = 'repl_password_123',
+  MASTER_AUTO_POSITION = 1;
+START SLAVE;
+SHOW SLAVE STATUS\G
+EOF
+
+
+---- user creation on all nodes for proxysql
+
+--- monitor user
+docker exec -it mysql-master1 mysql -uroot -p${MYSQL_ROOT_PASSWORD} <<EOF
+CREATE USER 'proxysql_monitor'@'%' IDENTIFIED BY 'monitor_pass';
+GRANT REPLICATION CLIENT, SUPER ON *.* TO 'proxysql_monitor'@'%';
+FLUSH PRIVILEGES;
+EOF
+
+--- application user
+docker exec -it mysql-master1 mysql -uroot -p${MYSQL_ROOT_PASSWORD} <<EOF
+CREATE USER 'app_user'@'%' IDENTIFIED BY 'app_password';
+GRANT ALL PRIVILEGES ON mydata.* TO 'app_user'@'%';
+FLUSH PRIVILEGES;
+EOF
