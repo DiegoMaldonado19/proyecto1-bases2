@@ -12,9 +12,9 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - ./slave/conf.d:/etc/mysql/conf.d
-      - ./slave/data:/var/lib/mysql
-      - ./slave/log:/var/log/mysql
+      - ./my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./slave-data:/var/lib/mysql
+      - ./slave-log:/var/log/mysql
     networks:
       - mysql-network
     command: >

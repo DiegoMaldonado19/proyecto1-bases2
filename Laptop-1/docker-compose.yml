@@ -12,29 +12,20 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - ./master1/conf.d:/etc/mysql/conf.d
-      - ./master1/data:/var/lib/mysql
-      - ./master1/log:/var/log/mysql
+      - ./my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./master1-data:/var/lib/mysql
+      - ./master1-log:/var/log/mysql
     networks:
       - mysql-network
-    command: >
-      --server-id=1
-      --log-bin=/var/log/mysql/mysql-bin.log
-      --binlog-format=ROW
-      --relay-log=/var/log/mysql/mysql-relay-bin
-      --auto-increment-increment=2
-      --auto-increment-offset=1
-      --gtid-mode=ON
-      --enforce-gtid-consistency=ON
 
   proxysql:
     image: proxysql/proxysql:latest
     container_name: proxysql
     ports:
-      - "6033:6033"  # Puerto MySQL
-      - "6032:6032"  # Puerto Admin
+      - "6033:6033"
+      - "6032:6032"
     volumes:
-      - ./proxysql/proxysql.cnf:/etc/proxysql.cnf
+      - ./proxysql.cnf:/etc/proxysql.cnf
       - proxysql-data:/var/lib/proxysql
     networks:
       - mysql-network
