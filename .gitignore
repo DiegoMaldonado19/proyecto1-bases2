@@ -1,4 +1,7 @@
 .env
-/master1-*
-/master2-*
-/slave-*
+/master1-data
+/master1-log
+/master2-data
+/master2-log
+/slave-data
+/slave-log
