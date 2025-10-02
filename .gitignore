@@ -1,7 +1,7 @@
 .env
-/master1-data
-/master1-log
-/master2-data
-/master2-log
-/slave-data
-/slave-log
+/Laptop-1/master1-data
+/Laptop-1/master1-log
+/Laptop-2/master2-data
+/Laptop-2/master2-log
+/Virtualbox-slave/slave-data
+/Virtualbox-slave/slave-log
