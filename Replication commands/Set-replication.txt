@@ -1,78 +1,135 @@
--- MASTER1 (Laptop 1)
-docker exec -it mysql-master1 mysql -u root -p
+##########################################
+# CREAR USUARIOS
+##########################################
+
+# ===== MASTER 1 (Laptop 1) =====
+docker exec -it mysql-master1 /bin/bash
+mysql -u root -p
+
+-- Usuario para replicación
+CREATE USER 'replicator'@'%' IDENTIFIED WITH mysql_native_password BY 'repl_password_123';
+GRANT REPLICATION SLAVE ON *.* TO 'replicator'@'%';
+
+-- Usuario para monitoreo de ProxySQL
+CREATE USER 'proxysql_monitor'@'%' IDENTIFIED BY 'monitor_pass';
+GRANT REPLICATION CLIENT, RELOAD ON *.* TO 'proxysql_monitor'@'%';
+
+-- Usuario para la aplicación
+CREATE USER 'app_user'@'%' IDENTIFIED BY 'app_password';
+GRANT ALL PRIVILEGES ON test_db.* TO 'app_user'@'%';
+
+FLUSH PRIVILEGES;
+exit
+
+
+# ===== MASTER 2 (Laptop 2) =====
+docker exec -it mysql-master2 /bin/bash
+mysql -u root -p
 
 CREATE USER 'replicator'@'%' IDENTIFIED WITH mysql_native_password BY 'repl_password_123';
 GRANT REPLICATION SLAVE ON *.* TO 'replicator'@'%';
 
 CREATE USER 'proxysql_monitor'@'%' IDENTIFIED BY 'monitor_pass';
-GRANT REPLICATION CLIENT, SUPER, RELOAD ON *.* TO 'proxysql_monitor'@'%';
+GRANT REPLICATION CLIENT, RELOAD ON *.* TO 'proxysql_monitor'@'%';
 
 CREATE USER 'app_user'@'%' IDENTIFIED BY 'app_password';
-GRANT ALL PRIVILEGES ON mydata.* TO 'app_user'@'%';
+GRANT ALL PRIVILEGES ON test_db.* TO 'app_user'@'%';
 
 FLUSH PRIVILEGES;
+exit
 
-#####################################################################
 
--- MASTER2 (Laptop 2)
-docker exec -it mysql-master2 mysql -u root -p
-
-CREATE USER 'replicator'@'%' IDENTIFIED WITH mysql_native_password BY 'repl_password_123';
-GRANT REPLICATION SLAVE ON *.* TO 'replicator'@'%';
-
-CREATE USER 'proxysql_monitor'@'%' IDENTIFIED BY 'monitor_pass';
-GRANT REPLICATION CLIENT, SUPER, RELOAD ON *.* TO 'proxysql_monitor'@'%';
-
-CREATE USER 'app_user'@'%' IDENTIFIED BY 'app_password';
-GRANT ALL PRIVILEGES ON mydata.* TO 'app_user'@'%';
-
-FLUSH PRIVILEGES;
-
-######################################################################
-
--- En SLAVE (VirtualBox)
-docker exec -it mysql-slave mysql -u root -p
+# ===== SLAVE (VirtualBox) =====
+docker exec -it mysql-slave /bin/bash
+mysql -u root -p
 
 CREATE USER 'proxysql_monitor'@'%' IDENTIFIED BY 'monitor_pass';
 GRANT REPLICATION CLIENT ON *.* TO 'proxysql_monitor'@'%';
 
 CREATE USER 'app_user'@'%' IDENTIFIED BY 'app_password';
-GRANT SELECT ON mydata.* TO 'app_user'@'%';  -- Solo lectura
+GRANT SELECT ON test_db.* TO 'app_user'@'%';  -- Solo lectura
 
 FLUSH PRIVILEGES;
+exit
 
-#######################################################################
+##########################################
+# RESET GTIDs
+##########################################
 
--- master1 - master2
+# Master 1
+docker exec -it mysql-master1 mysql -u root -p
 RESET MASTER;
+SHOW MASTER STATUS;
+exit
 
--- MASTER1
+# Master 2
+docker exec -it mysql-master2 mysql -u root -p
+RESET MASTER;
+SHOW MASTER STATUS;
+exit
+
+##########################################
+# REPLICACIÓN
+##########################################
+
+# ===== Master1 replica DESDE Master2 =====
+docker exec -it mysql-master1 mysql -u root -p
+
 CHANGE REPLICATION SOURCE TO
   SOURCE_HOST = '100.87.129.54',
   SOURCE_USER = 'replicator',
   SOURCE_PASSWORD = 'repl_password_123',
-  SOURCE_AUTO_POSITION = 1;
+  SOURCE_AUTO_POSITION = 1,
+  GET_SOURCE_PUBLIC_KEY = 1;
+
 START REPLICA;
 SHOW REPLICA STATUS\G
 
-#######################################################################
 
--- MASTER2
+# ===== Master2 replica DESDE Master1 =====
+docker exec -it mysql-master2 mysql -u root -p
+
 CHANGE REPLICATION SOURCE TO
   SOURCE_HOST = '100.125.125.26',
   SOURCE_USER = 'replicator',
   SOURCE_PASSWORD = 'repl_password_123',
-  SOURCE_AUTO_POSITION = 1;
+  SOURCE_AUTO_POSITION = 1,
+  GET_SOURCE_PUBLIC_KEY = 1;
+
 START REPLICA;
 SHOW REPLICA STATUS\G
 
-#######################################################################
+# ===== Slave replica DESDE Master2 =====
+docker exec -it mysql-slave mysql -u root -p
 
--- En SLAVE
 CHANGE REPLICATION SOURCE TO
   SOURCE_HOST = '100.87.129.54',
   SOURCE_USER = 'replicator',
   SOURCE_PASSWORD = 'repl_password_123',
-  SOURCE_AUTO_POSITION = 1;
+  SOURCE_AUTO_POSITION = 1,
+  GET_SOURCE_PUBLIC_KEY = 1;
+
 START REPLICA;
 SHOW REPLICA STATUS\G
+
+# ===== Crear tabla en Master1 e insertar registro =====
+docker exec -it mysql-master1 mysql -u root -p
+
+USE test_db;
+CREATE TABLE test_replication (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    source VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO test_replication (source) VALUES ('master1-laptop1');
+SELECT * FROM test_replication;
+exit
+
+
+# ===== Prueba 2: Insertar en Master2 =====
+docker exec -it mysql-master2 mysql -u root -p
+USE test_db;
+INSERT INTO test_replication (source) VALUES ('master2-laptop2');
+SELECT * FROM test_replication ORDER BY id;
+exit

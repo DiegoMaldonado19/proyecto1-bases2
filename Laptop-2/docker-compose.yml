@@ -20,7 +20,6 @@ services:
       --server-id=2
       --log-bin=/var/log/mysql/mysql-bin.log
       --binlog-format=ROW
-      --binlog-do-db=mydata
       --relay-log=/var/log/mysql/mysql-relay-bin
       --relay-log-index=/var/log/mysql/mysql-relay-bin.index
       --auto-increment-increment=2
@@ -32,6 +31,7 @@ services:
       --collation-server=utf8mb4_unicode_ci
       --gtid-mode=ON
       --enforce-gtid-consistency=ON
+      --skip-replica-start=1
 
 networks:
   mysql-network:
