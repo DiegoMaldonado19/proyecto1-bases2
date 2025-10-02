@@ -1,72 +1,79 @@
----- user creation master1 [laptop1]
+-- MASTER1 (Laptop 1)
+docker exec -it mysql-master1 mysql -u root -p
 
-docker exec -it mysql-master1 /bin/bash
-mysql -u root -p
-CREATE USER 'replicator'@'%' IDENTIFIED BY 'repl_password_123';
+CREATE USER 'replicator'@'%' IDENTIFIED WITH mysql_native_password BY 'repl_password_123';
 GRANT REPLICATION SLAVE ON *.* TO 'replicator'@'%';
-ALTER USER 'replicator'@'%' IDENTIFIED WITH mysql_native_password BY 'repl_password_123';
+
+CREATE USER 'proxysql_monitor'@'%' IDENTIFIED BY 'monitor_pass';
+GRANT REPLICATION CLIENT, SUPER, RELOAD ON *.* TO 'proxysql_monitor'@'%';
+
+CREATE USER 'app_user'@'%' IDENTIFIED BY 'app_password';
+GRANT ALL PRIVILEGES ON mydata.* TO 'app_user'@'%';
+
 FLUSH PRIVILEGES;
-SHOW MASTER STATUS;
 
----- user creation master2 [laptop2]
+#####################################################################
 
-docker exec -it mysql-master2 /bin/bash
-mysql -u root -p
-CREATE USER 'replicator'@'%' IDENTIFIED BY 'repl_password_123';
+-- MASTER2 (Laptop 2)
+docker exec -it mysql-master2 mysql -u root -p
+
+-- REPETIR LOS MISMOS COMANDOS EXACTAMENTE IGUAL
+CREATE USER 'replicator'@'%' IDENTIFIED WITH mysql_native_password BY 'repl_password_123';
 GRANT REPLICATION SLAVE ON *.* TO 'replicator'@'%';
-ALTER USER 'replicator'@'%' IDENTIFIED WITH mysql_native_password BY 'repl_password_123';
+
+CREATE USER 'proxysql_monitor'@'%' IDENTIFIED BY 'monitor_pass';
+GRANT REPLICATION CLIENT, SUPER, RELOAD ON *.* TO 'proxysql_monitor'@'%';
+
+CREATE USER 'app_user'@'%' IDENTIFIED BY 'app_password';
+GRANT ALL PRIVILEGES ON mydata.* TO 'app_user'@'%';
+
 FLUSH PRIVILEGES;
-SHOW MASTER STATUS;
 
----- set replica master1 from master2
+######################################################################
 
-docker exec -it mysql-master1 /bin/bash
-mysql -u root -p
-CHANGE MASTER TO
-  MASTER_HOST = '100.87.129.54',
-  MASTER_USER = 'replicator',
-  MASTER_PASSWORD = 'repl_password_123',
-  MASTER_AUTO_POSITION = 1;
+-- En SLAVE (VirtualBox)
+docker exec -it mysql-slave mysql -u root -p
+
+CREATE USER 'proxysql_monitor'@'%' IDENTIFIED BY 'monitor_pass';
+GRANT REPLICATION CLIENT ON *.* TO 'proxysql_monitor'@'%';
+
+CREATE USER 'app_user'@'%' IDENTIFIED BY 'app_password';
+GRANT SELECT ON mydata.* TO 'app_user'@'%';  -- Solo lectura
+
+FLUSH PRIVILEGES;
+
+#######################################################################
+
+-- master1 - master2
+RESET MASTER;
+
+-- MASTER1
+CHANGE REPLICATION SOURCE TO
+  SOURCE_HOST = '100.87.129.54',
+  SOURCE_USER = 'replicator',
+  SOURCE_PASSWORD = 'repl_password_123',
+  SOURCE_AUTO_POSITION = 1;
 START REPLICA;
 SHOW REPLICA STATUS\G
 
----- set replica master2 from master 1
+#######################################################################
 
-docker exec -it mysql-master2 /bin/bash
-mysql -u root -p
-CHANGE MASTER TO
-  MASTER_HOST = '100.125.125.26',
-  MASTER_USER = 'replicator',
-  MASTER_PASSWORD = 'repl_password_123',
-  MASTER_AUTO_POSITION = 1;
+-- MASTER2
+CHANGE REPLICATION SOURCE TO
+  SOURCE_HOST = '100.125.125.26',
+  SOURCE_USER = 'replicator',
+  SOURCE_PASSWORD = 'repl_password_123',
+  SOURCE_AUTO_POSITION = 1;
 START REPLICA;
 SHOW REPLICA STATUS\G
 
----- set slave replica from master 2
+#######################################################################
 
-docker exec -it mysql-slave /bin/bash
-mysql -u root -p
-CHANGE MASTER TO
-  MASTER_HOST = '100.87.129.54',
-  MASTER_USER = 'replicator',
-  MASTER_PASSWORD = 'repl_password_123',
-  MASTER_AUTO_POSITION = 1;
-START SLAVE;
-SHOW SLAVE STATUS\G
-
-
----- user creation on all nodes for proxysql use the container name not only master1
-
-    --- monitor user
-    docker exec -it mysql-master1 /bin/bash
-    mysql -u root -p
-    CREATE USER 'proxysql_monitor'@'%' IDENTIFIED BY 'monitor_pass';
-    GRANT REPLICATION CLIENT, SUPER ON *.* TO 'proxysql_monitor'@'%';
-    FLUSH PRIVILEGES;
-
-    --- application user
-    docker exec -it mysql-master1 /bin/bash
-    mysql -u root -p
-    CREATE USER 'app_user'@'%' IDENTIFIED BY 'app_password';
-    GRANT ALL PRIVILEGES ON mydata.* TO 'app_user'@'%';
-    FLUSH PRIVILEGES;
+-- En SLAVE
+CHANGE REPLICATION SOURCE TO
+  SOURCE_HOST = '100.87.129.54',
+  SOURCE_USER = 'replicator',
+  SOURCE_PASSWORD = 'repl_password_123',
+  SOURCE_AUTO_POSITION = 1;
+START REPLICA;
+SHOW REPLICA STATUS\G
