@@ -6,6 +6,7 @@ services:
     container_name: mysql-slave
     hostname: mysql-slave
     restart: unless-stopped
+    user: "999:999"
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: mydata
