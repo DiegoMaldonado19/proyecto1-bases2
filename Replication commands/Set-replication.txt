@@ -133,3 +133,8 @@ USE test_db;
 INSERT INTO test_replication (source) VALUES ('master2-laptop2');
 SELECT * FROM test_replication ORDER BY id;
 exit
+
+
+# ========= POWERSHELL CONNECTION TEST ============ #
+Test-NetConnection -ComputerName 100.87.129.54 -Port 3306     # Connection from laptop 1 to laptop 2
+Test-NetConnection -ComputerName 100.125.125.26 -Port 3306    # Connection from laptop 2 to laptop 1
