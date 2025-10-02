@@ -47,9 +47,16 @@ CREATE USER 'proxysql_monitor'@'%' IDENTIFIED BY 'monitor_pass';
 GRANT REPLICATION CLIENT ON *.* TO 'proxysql_monitor'@'%';
 
 CREATE USER 'app_user'@'%' IDENTIFIED BY 'app_password';
-GRANT SELECT ON test_db.* TO 'app_user'@'%';  -- Solo lectura
+GRANT SELECT ON mydata.* TO 'app_user'@'%';  -- Solo lectura
 
 FLUSH PRIVILEGES;
+
+SET GLOBAL read_only = 1;
+SET GLOBAL super_read_only = 1;
+
+-- Verificar
+SHOW VARIABLES LIKE '%read_only%';
+
 exit
 
 ##########################################

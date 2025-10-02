@@ -23,12 +23,10 @@ services:
       --relay-log-index=/var/log/mysql/mysql-relay-bin.index
       --log-bin=/var/log/mysql/mysql-bin.log
       --binlog-format=ROW
-      --read-only=1
-      --super-read-only=1
       --gtid-mode=ON
       --enforce-gtid-consistency=ON
-      --slave-parallel-workers=4
-      --slave-parallel-type=LOGICAL_CLOCK
+      --replica-parallel-workers=4
+      --replica-parallel-type=LOGICAL_CLOCK
       --skip-replica-start=1
       --bind-address=0.0.0.0
       --character-set-server=utf8mb4
